@@ -10,6 +10,7 @@ class Keycloak{
         this.sessionEndWarning=config.sessionEndWarning || 60;
         this.sessionEndingCallback = config.onSessionEnding;
         this.keycloakUrl=`${config.keycloakUrl}/realms/${config.realm}/protocol/openid-connect`
+        this.refreshUrl=`${config.refreshUrl?config.refreshUrl:config.keycloakUrl}/realms/${config.realm}/protocol/openid-connect`
     }
 
     refreshInterval(expiresIn){
@@ -40,9 +41,10 @@ class Keycloak{
         }
     }
 
-    fetchToken(formData){
+    fetchToken(formData, isRefresh){
         var xhr = new XMLHttpRequest();
-        xhr.open('POST',`${this.keycloakUrl}/token`, true);
+        let tokenUrl = isRefresh?this.refreshUrl:this.keycloakUrl;
+        xhr.open('POST',`${tokenUrl}/token`, true);
         xhr.setRequestHeader('Content-Type','application/x-www-form-urlencoded')
         let self=this;
         let resp=null;
@@ -100,7 +102,7 @@ class Keycloak{
         data.append('grant_type', 'authorization_code');
         data.append('client_id', this.config.client);
         data.append('redirect_uri', this.config.redirectUrl);
-        this.fetchToken(data);        
+        this.fetchToken(data,false);        
     }
 
     refresh(refreshToken){
@@ -109,7 +111,7 @@ class Keycloak{
         data.append('refresh_token',refreshToken);
         data.append('grant_type', 'refresh_token');
         data.append('client_id', this.config.client);
-        this.fetchToken(data);
+        this.fetchToken(data,true);
     }
 
     directGrantAuthenticate(user,pass){
@@ -119,7 +121,7 @@ class Keycloak{
         data.append('scope', 'openid profile');
         data.append('username',user);
         data.append('password',pass);
-        this.fetchToken(data);
+        this.fetchToken(data,false);
     }
 
     directGrantX509Authenticate(){
@@ -129,7 +131,7 @@ class Keycloak{
         data.append('scope', 'openid profile');
         data.append('username','');
         data.append('password','');
-        this.fetchToken(data);
+        this.fetchToken(data,false);
     }
 
     getAccessToken(){
