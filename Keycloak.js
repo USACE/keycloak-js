@@ -1,7 +1,12 @@
 const urlencodeFormData = fd => new URLSearchParams([...fd])
 
+const KEYCLOAK_ACTION_FETCH_TOKEN="token";
+const KEYCLOAK_ACTION_REFRESH_TOKEN="refresh";
+const KEYCLOAK_ACTION_LOGOUT="logout";
+
 class Keycloak{
     constructor(config){
+        this.refreshToken=null;
         this.accessToken=null;
         this.identityToken=null;
         this.config=config;
@@ -41,10 +46,23 @@ class Keycloak{
         }
     }
 
-    fetchToken(formData, isRefresh){
-        var xhr = new XMLHttpRequest();
-        let tokenUrl = isRefresh?this.refreshUrl:this.keycloakUrl;
-        xhr.open('POST',`${tokenUrl}/token`, true);
+    fetchToken(formData, action){
+        let xhr = new XMLHttpRequest();
+        let url=""
+        switch(action){
+            case KEYCLOAK_ACTION_FETCH_TOKEN:
+                url=`${this.keycloakUrl}/token`;
+                break;
+            case KEYCLOAK_ACTION_REFRESH_TOKEN:
+                url=`${this.refreshUrl}/token`;
+                break;
+            case KEYCLOAK_ACTION_LOGOUT:
+                url=(this.refreshUrl?this.refreshUrl:this.keycloakUrl)+`/logout?redirect_uri=${this.config.redirectUrl}`;
+                break;
+            default:
+                console.log("Invalid Keycloak action")
+        }
+        xhr.open('POST',url, true);
         xhr.setRequestHeader('Content-Type','application/x-www-form-urlencoded')
         let self=this;
         let resp=null;
@@ -73,6 +91,7 @@ class Keycloak{
                         console.log(`Error parsing authentication token: ${err}`)
                     }
                     self.accessToken=keycloakResp.access_token;
+                    self.refreshToken=keycloakResp.refresh_token; ////<<<<<<<<<<<
                     self.identityToken=keycloakResp.identity_token;
                     const remainingTime = keycloakResp.refresh_expires_in;
                     if(remainingTime<=self.sessionEndWarning){
@@ -97,41 +116,41 @@ class Keycloak{
 
     codeFlowAuth(){
         console.log("fetching token");
-        var data = new FormData();
+        let data = new FormData();
         data.append('code', this.code);
         data.append('grant_type', 'authorization_code');
         data.append('client_id', this.config.client);
         data.append('redirect_uri', this.config.redirectUrl);
-        this.fetchToken(data,false);        
+        this.fetchToken(data,KEYCLOAK_ACTION_FETCH_TOKEN);        
     }
 
     refresh(refreshToken){
         console.log("refreshing token");
-        var data = new FormData();
+        let data = new FormData();
         data.append('refresh_token',refreshToken);
         data.append('grant_type', 'refresh_token');
         data.append('client_id', this.config.client);
-        this.fetchToken(data,true);
+        this.fetchToken(data,KEYCLOAK_ACTION_REFRESH_TOKEN);
     }
 
     directGrantAuthenticate(user,pass){
-        var data = new FormData();
+        let data = new FormData();
         data.append('grant_type', 'password');
         data.append('client_id', this.config.client);
         data.append('scope', 'openid profile');
         data.append('username',user);
         data.append('password',pass);
-        this.fetchToken(data,false);
+        this.fetchToken(data,KEYCLOAK_ACTION_FETCH_TOKEN);
     }
 
     directGrantX509Authenticate(){
-        var data = new FormData();
+        let data = new FormData();
         data.append('grant_type', 'password');
         data.append('client_id', this.config.client);
         data.append('scope', 'openid profile');
         data.append('username','');
         data.append('password','');
-        this.fetchToken(data,false);
+        this.fetchToken(data,KEYCLOAK_ACTION_FETCH_TOKEN);
     }
 
     getAccessToken(){
@@ -141,6 +160,14 @@ class Keycloak{
     getIdentityToken(){
         return this.identityToken;
     }
+
+    logout(){
+        let data = new FormData();
+        data.append('refresh_token',this.refreshToken);
+        data.append('client_id', this.config.client);
+        this.fetchToken(data,KEYCLOAK_ACTION_LOGOUT);
+    }
+
 }
 
 const tokenToObject=function(token){
