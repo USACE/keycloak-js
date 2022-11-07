@@ -166,6 +166,8 @@ class Keycloak{
         data.append('refresh_token',this.refreshToken);
         data.append('client_id', this.config.client);
         this.fetchToken(data,KEYCLOAK_ACTION_LOGOUT);
+        this.accessToken=null;
+        this.refreshToken=null;
     }
 
 }
