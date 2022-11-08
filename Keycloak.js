@@ -6,6 +6,7 @@ const KEYCLOAK_ACTION_LOGOUT="logout";
 
 class Keycloak{
     constructor(config){
+        this.kc_idp_hint="login.gov";
         this.refreshToken=null;
         this.accessToken=null;
         this.identityToken=null;
@@ -32,7 +33,7 @@ class Keycloak{
     }
 
     authenticate(){
-        const url = `${this.config.keycloakUrl}/realms/${this.config.realm}/protocol/openid-connect/auth?response_type=code&client_id=${this.config.client}&scope=openid&redirect_uri=${this.config.redirectUrl}&nocache=${(new Date()).getTime()}`
+        const url = `${this.config.keycloakUrl}/realms/${this.config.realm}/protocol/openid-connect/auth?response_type=code&kc_idp_hint=${this.kc_idp_hint}&client_id=${this.config.client}&scope=openid&redirect_uri=${this.config.redirectUrl}&nocache=${(new Date()).getTime()}`
         window.location.href=url;
     }
 
