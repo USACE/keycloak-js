@@ -17,7 +17,7 @@ class Keycloak{
         this.sessionEndingCallback = config.onSessionEnding;
         this.keycloakUrl=`${config.keycloakUrl}/realms/${config.realm}/protocol/openid-connect`;
         this.refreshUrl=`${config.refreshUrl?config.refreshUrl:config.keycloakUrl}/realms/${config.realm}/protocol/openid-connect`;
-        this.timeoutFunction=null;
+        this.timeoutFunctionId=null;
     }
 
     refreshInterval(expiresIn){
@@ -59,8 +59,8 @@ class Keycloak{
                 url=`${this.refreshUrl}/token`;
                 break;
             case KEYCLOAK_ACTION_LOGOUT:
-                if (this.timeoutFunction)
-                    clearTimeout(this.timeoutFunction);
+                if (this.timeoutFunctionId)
+                    clearTimeout(this.timeoutFunctionId);
                 url=(this.refreshUrl?this.refreshUrl:this.keycloakUrl)+`/logout?redirect_uri=${this.config.redirectUrl}`;
                 break;
             default:
@@ -102,7 +102,7 @@ class Keycloak{
                         if(self.sessionEndingCallback)
                             self.sessionEndingCallback(remainingTime);
                     }
-                    self.timeoutFunction=setTimeout(function(){
+                    self.timeoutFunctionId=setTimeout(function(){
                         self.refresh(keycloakResp.refresh_token);
                     },self.refreshInterval(keycloakResp.expires_in));
                     self.authCallback(keycloakResp.access_token);
