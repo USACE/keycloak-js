@@ -34,7 +34,9 @@ class Keycloak{
     }
 
     authenticate(){
-        const url = `${this.config.keycloakUrl}/realms/${this.config.realm}/protocol/openid-connect/auth?response_type=code&kc_idp_hint=${this.kc_idp_hint}&client_id=${this.config.client}&scope=openid&redirect_uri=${this.config.redirectUrl}&nocache=${(new Date()).getTime()}`
+        const siteUrl = window.location.href
+        const urlState=encodeURIComponent(window.btoa(siteUrl.replace(this.config.redirectUrl,"")));
+        const url = `${this.config.keycloakUrl}/realms/${this.config.realm}/protocol/openid-connect/auth?response_type=code&kc_idp_hint=${this.kc_idp_hint}&client_id=${this.config.client}&scope=openid&redirect_uri=${this.config.redirectUrl}&state=${urlState}&nocache=${(new Date()).getTime()}`
         window.location.href=url;
     }
 
@@ -42,9 +44,11 @@ class Keycloak{
         const urlParams = new URLSearchParams(window.location.search);
         this.code=urlParams.get('code');
         this.session_state=urlParams.get('session_state');
+        let urlState=window.atob(decodeURIComponent(urlParams.get("state")));
+        let url = `${document.location.pathname}${urlState}`;
         if(this.code && this.session_state){
             this.codeFlowAuth(this.authcallback);
-            window.history.pushState(null,null, document.location.pathname);
+            window.history.pushState(null,null, url);
         }
     }
 
