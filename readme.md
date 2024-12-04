@@ -1,10 +1,14 @@
 #Simple Keycloak JS Client
 
 to use, add the keycloak js class to your project and import it into your auth bundle.
-then in the bundler init function, set keycloak up similar to the code below. 
+then in the bundler init function, set keycloak up similar to the code below.
 
-refreshUrl was added to support the use case when a token is requested via CAC, 
+refreshUrl was added to support the use case when a token is requested via CAC,
 then refreshed on the keycloak server's non-cac route to avoid re-entering PIN numbers.
+
+`npm install @usace/keycloak`
+
+`import Keycloak from "@usace/keycloak"`
 
 ```js
 init:store=>{
@@ -32,3 +36,5 @@ init:store=>{
     keycloak.checkForSession();
   },
 ```
+
+This package is automatically published to NPM when a new release is created. Use `npm version` to update the version of the package prior to running a new release.

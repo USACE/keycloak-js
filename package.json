@@ -1,0 +1,11 @@
+{
+  "name": "@usace/keycloak",
+  "version": "1.0.0",
+  "description": "A minimalist, zero-dependency, Keycloak JavaScript class to support a limited subset of authentication workflows",
+  "main": "Keycloak.js",
+  "scripts": {
+    "test": "echo \"Error: no test specified\" && exit 1"
+  },
+  "author": "@willbreitkreutz @randal.goss",
+  "license": "MIT"
+}
