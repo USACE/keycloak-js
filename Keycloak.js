@@ -150,6 +150,15 @@ class Keycloak {
         });
       }
     };
+    xhr.ontimeout = function () {
+      if (xhr.responseText) {
+        self.errCallback(JSON.parse(xhr.responseText));
+      } else {
+        self.errCallback({
+          error: "Unable to fetch the token due to a Network Timeout Error",
+        });
+      }
+    };
     xhr.send(urlencodeFormData(formData));
   }
 
