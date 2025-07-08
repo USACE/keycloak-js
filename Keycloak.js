@@ -129,7 +129,7 @@ class Keycloak {
           }
           self.accessToken = keycloakResp.access_token;
           self.refreshToken = keycloakResp.refresh_token;
-          self.identityToken = keycloakResp.identity_token;
+          self.identityToken = keycloakResp.id_token;
           const remainingTime = keycloakResp.refresh_expires_in;
           if (remainingTime <= self.sessionEndWarning) {
             if (self.sessionEndingCallback)
