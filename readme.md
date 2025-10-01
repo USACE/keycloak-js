@@ -3,7 +3,7 @@
 > Minimal, modern Keycloak authentication and token management for browser apps.
 
 **NPM Package:** [`@usace/keycloak`](https://www.npmjs.com/package/@usace/keycloak)  
-**Version:** `2.0.0`
+**Version:** `2.0.1`
 
 ## Installation
 
@@ -33,7 +33,7 @@ const kc = new Keycloak({
   keycloakUrl: "https://identity.sec.usace.army.mil/auth",
   realm: "cwbi",
   redirectUrl: window.location.origin + "/callback",
-  onAuthenticate: (token) => {
+  onAuthenticate: (token, keycloakResponse) => {
     // User is authenticated, do something with token!
     console.log("Access Token:", token);
   },
@@ -58,29 +58,29 @@ kc.checkForSession();
 
 Pass these as an object to the `Keycloak` constructor:
 
-| Option              | Type     | Default          | Description                                                         |
-| ------------------- | -------- | ---------------- | ------------------------------------------------------------------- |
-| `client`            | string   | —                | Keycloak client ID (required)                                       |
-| `keycloakUrl`       | string   | —                | Base URL to Keycloak instance (required)                            |
-| `realm`             | string   | —                | Realm name (required)                                               |
-| `redirectUrl`       | string   | —                | URL to redirect after login (required)                              |
-| `logoutUrl`         | string   | —                | Base Keycloak URL for logout (defaults to `keycloakUrl` if not set) |
-| `directGrantUrl`    | string   | `keycloakUrl`    | URL for direct grant/token endpoint                                 |
-| `browserFlowUrl`    | string   | `keycloakUrl`    | URL for browser login flow                                          |
-| `refreshUrl`        | string   | `keycloakUrl`    | URL for refresh endpoint                                            |
-| `kc_idp_hint`       | string   | "login.gov"      | Identity provider hint                                              |
-| `scope`             | string   | "openid profile" | OAuth scopes                                                        |
-| `refreshInterval`   | number   | (from token)     | Override refresh interval (seconds)                                 |
-| `refreshBuffer`     | number   | 60               | Buffer (seconds) before token expiry to refresh                     |
-| `sessionEndWarning` | number   | 60               | Warn user (seconds) before session expiry                           |
-| `accessToken`       | string   | —                | Initial access token, if known                                      |
-| `identityToken`     | string   | —                | Initial identity token, if known                                    |
-| `refreshToken`      | string   | —                | Initial refresh token, if known                                     |
-| **Callbacks:**      |          |                  |                                                                     |
-| `onAuthenticate`    | function | —                | Called after authentication/refresh with access token               |
-| `onSessionEnding`   | function | —                | Called before session expiry (seconds left)                         |
-| `onError`           | function | throws Error     | Called on authentication error                                      |
-| `onLogout`          | function | —                | Called after programmatic logout (non-redirect)                     |
+| Option              | Type     | Default          | Description                                                                          |
+| ------------------- | -------- | ---------------- | ------------------------------------------------------------------------------------ |
+| `client`            | string   | —                | Keycloak client ID (required)                                                        |
+| `keycloakUrl`       | string   | —                | Base URL to Keycloak instance (required)                                             |
+| `realm`             | string   | —                | Realm name (required)                                                                |
+| `redirectUrl`       | string   | —                | URL to redirect after login (required)                                               |
+| `logoutUrl`         | string   | —                | Base Keycloak URL for logout (defaults to `keycloakUrl` if not set)                  |
+| `directGrantUrl`    | string   | `keycloakUrl`    | URL for direct grant/token endpoint                                                  |
+| `browserFlowUrl`    | string   | `keycloakUrl`    | URL for browser login flow                                                           |
+| `refreshUrl`        | string   | `keycloakUrl`    | URL for refresh endpoint                                                             |
+| `kc_idp_hint`       | string   | "login.gov"      | Identity provider hint                                                               |
+| `scope`             | string   | "openid profile" | OAuth scopes                                                                         |
+| `refreshInterval`   | number   | (from token)     | Override refresh interval (seconds)                                                  |
+| `refreshBuffer`     | number   | 60               | Buffer (seconds) before token expiry to refresh                                      |
+| `sessionEndWarning` | number   | 60               | Warn user (seconds) before session expiry                                            |
+| `accessToken`       | string   | —                | Initial access token, if known                                                       |
+| `identityToken`     | string   | —                | Initial identity token, if known                                                     |
+| `refreshToken`      | string   | —                | Initial refresh token, if known                                                      |
+| **Callbacks:**      |          |                  |                                                                                      |
+| `onAuthenticate`    | function | —                | Called after authentication/refresh with access token and the full keycloak response |
+| `onSessionEnding`   | function | —                | Called before session expiry (seconds left)                                          |
+| `onError`           | function | throws Error     | Called on authentication error                                                       |
+| `onLogout`          | function | —                | Called after programmatic logout (non-redirect)                                      |
 
 ---
 
