@@ -1,6 +1,6 @@
 {
   "name": "@usace/keycloak",
-  "version": "2.0.0",
+  "version": "2.0.1",
   "description": "A minimalist, zero-dependency, Keycloak JavaScript class to support a limited subset of authentication workflows",
   "main": "Keycloak.js",
   "scripts": {
