@@ -128,9 +128,9 @@ class Keycloak {
       this.refresh();
     }, this._getRefreshInterval(tokens.expires_in));
 
-    // Trigger the success callback
+    // Trigger the success callback, provide access token and raw keycloak response to callback
     if (typeof this.onAuthenticate === "function")
-      this.onAuthenticate(this.accessToken);
+      this.onAuthenticate(this.accessToken, keycloakResp);
   }
 
   fetch(url, data, onSuccess, onError = this.onError) {
