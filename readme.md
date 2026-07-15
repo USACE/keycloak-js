@@ -64,7 +64,7 @@ Pass these as an object to the `Keycloak` constructor:
 | `keycloakUrl`       | string   | —                | Base URL to Keycloak instance (required)                                             |
 | `realm`             | string   | —                | Realm name (required)                                                                |
 | `redirectUrl`       | string   | —                | URL to redirect after login (required)                                               |
-| `logoutUrl`         | string   | —                | Base Keycloak URL for logout (defaults to `keycloakUrl` if not set)                  |
+| `logoutUrl`         | string   | `keycloakUrl`    | Base Keycloak URL for logout (defaults to `keycloakUrl` if not set)                  |
 | `directGrantUrl`    | string   | `keycloakUrl`    | URL for direct grant/token endpoint                                                  |
 | `browserFlowUrl`    | string   | `keycloakUrl`    | URL for browser login flow                                                           |
 | `refreshUrl`        | string   | `keycloakUrl`    | URL for refresh endpoint                                                             |
@@ -94,13 +94,32 @@ const kc = new Keycloak(options);
 
 ---
 
-### `authenticate()`
+### `authenticate(overrides)`
 
 Redirects the browser to the Keycloak login page to initiate the browser authentication flow.
 
+**Parameters:**
+- `overrides` (optional): Object to override configuration at runtime
+  - `realm` - Override the realm for this authentication
+  - `kc_idp_hint` - Override the identity provider hint (e.g., "login.gov", "federation-eams")
+  - `redirectUrl` - Override the redirect URL after authentication
+
 ```js
+// Standard authentication using configured values
 kc.authenticate();
+
+// Override realm and IDP for this login
+kc.authenticate({
+  realm: "different-realm",
+  kc_idp_hint: "federation-eams",
+  redirectUrl: "https://myapp.com/custom-callback"
+});
 ```
+
+**Use Cases:**
+- Switch between different identity providers (login.gov vs federation-eams) based on user choice
+- Use different redirect URLs depending on where the user initiated login
+- Authenticate to different realms dynamically
 
 ---
 
@@ -137,9 +156,25 @@ kc.directGrantAuthenticate("username", "password");
 
 ---
 
-### `directGrantX509Authenticate()`
+### `directGrantX509Authenticate(overrides)`
 
 Attempts to authenticate using X.509 client certificate to implement AJAX based CAC auth.
+
+**Parameters:**
+- `overrides` (optional): Object to override configuration at runtime
+  - `realm` - Override the realm for this authentication
+  - `scope` - Override the OAuth scopes for this authentication
+
+```js
+// Standard X.509 authentication using configured values
+kc.directGrantX509Authenticate();
+
+// Override realm and scope
+kc.directGrantX509Authenticate({
+  realm: "cwbi-cac",
+  scope: "openid profile email"
+});
+```
 
 > Note when using CWBI Keycloak, `https://identity...` does not parse the CAC certificate, `https://identityc...` will parse the CAC certificate. For the best user experience, use the `c` endpoint as the `directGrantUrl` and the non-c endpoint as the `keycloakUrl` so the user is not prompted for CAC pin when refreshing tokens.
 
@@ -216,7 +251,35 @@ kc.checkForSession();
 
 ---
 
-### 2. Refresh Token on Demand
+### 2. Dynamic Identity Provider Selection
+
+```js
+// Let users choose their login method
+function loginWithLoginGov() {
+  kc.authenticate({ kc_idp_hint: "login.gov" });
+}
+
+function loginWithEAMS() {
+  kc.authenticate({ kc_idp_hint: "federation-eams" });
+}
+```
+
+---
+
+### 3. Context-Aware Redirects
+
+```js
+// Redirect back to the current page after login
+function loginHere() {
+  kc.authenticate({
+    redirectUrl: window.location.href
+  });
+}
+```
+
+---
+
+### 4. Refresh Token on Demand
 
 ```js
 setInterval(() => {
@@ -226,7 +289,7 @@ setInterval(() => {
 
 ---
 
-### 3. Decode Token Claims
+### 5. Decode Token Claims
 
 ```js
 const info = tokenToObject(kc.getAccessToken());
@@ -247,6 +310,16 @@ console.log(info.email, info.preferred_username);
 ---
 
 ## Release Notes
+
+**Version 2.1.0**
+
+- Added runtime overrides support to `authenticate()` method
+  - Override `realm`, `kc_idp_hint`, and `redirectUrl` at runtime
+  - Enables dynamic identity provider selection
+  - Supports context-aware redirect URLs
+- Added runtime overrides support to `directGrantX509Authenticate()` method
+  - Override `realm` and `scope` at runtime
+- Improved `logoutUrl` configuration with fallback to `keycloakUrl` for consistency
 
 **Version 2.0.0**
 
