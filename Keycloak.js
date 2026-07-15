@@ -39,7 +39,7 @@ class Keycloak {
     this.keycloakUrl = config.keycloakUrl;
     this.directGrantUrl = config.directGrantUrl || config.keycloakUrl;
     this.browserFlowUrl = config.browserFlowUrl || config.keycloakUrl;
-    this.logoutUrl = config.logoutUrl;
+    this.logoutUrl = config.logoutUrl || config.keycloakUrl;
     this.redirectUrl = config.redirectUrl;
     this.refreshUrl = config.refreshUrl || config.keycloakUrl;
     this.realm = config.realm;
@@ -57,14 +57,20 @@ class Keycloak {
     this.onLogout = config.onLogout;
   }
 
-  authenticate() {
-    const url = `${this.browserFlowUrl}/realms/${
-      this.realm
-    }/protocol/openid-connect/auth?response_type=code&kc_idp_hint=${
-      this.kc_idp_hint
-    }&client_id=${this.client}&scope=openid&redirect_uri=${
-      this.redirectUrl
-    }&nocache=${new Date().getTime()}`;
+  authenticate(overrides = {}) {
+    // allow run-time overrides of some of the config
+    // this lets you switch between login.gov or eams-a for the
+    // browser flow or use a different redirect url depending
+    // on where a user is when they login.
+    const realm = overrides.realm || this.realm;
+    const kc_idp_hint = overrides.kc_idp_hint || this.kc_idp_hint;
+    const redirectUrl = overrides.redirectUrl || this.redirectUrl;
+
+    const url = `${
+      this.browserFlowUrl
+    }/realms/${realm}/protocol/openid-connect/auth?response_type=code&kc_idp_hint=${kc_idp_hint}&client_id=${
+      this.client
+    }&scope=openid&redirect_uri=${redirectUrl}&nocache=${new Date().getTime()}`;
     window.location.href = url;
   }
 
@@ -212,12 +218,14 @@ class Keycloak {
     this.fetch(url, data, this.parseTokens.bind(this));
   }
 
-  directGrantX509Authenticate() {
-    const url = `${this.directGrantUrl}/realms/${this.realm}/protocol/openid-connect/token`;
+  directGrantX509Authenticate(overrides = {}) {
+    const realm = overrides.realm || this.realm;
+    const scope = overrides.scope || this.scope;
+    const url = `${this.directGrantUrl}/realms/${realm}/protocol/openid-connect/token`;
     const data = new FormData();
     data.append("grant_type", "password");
     data.append("client_id", this.client);
-    data.append("scope", this.scope);
+    data.append("scope", scope);
     data.append("username", "");
     data.append("password", "");
     this.fetch(url, data, this.parseTokens.bind(this));
