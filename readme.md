@@ -6,7 +6,7 @@
 > Minimal, modern Keycloak authentication and token management for browser apps.
 
 **NPM Package:** [`@usace/keycloak`](https://www.npmjs.com/package/@usace/keycloak)  
-**Version:** `2.0.1`
+**Version:** `2.1.0`
 
 ## Installation
 
@@ -48,12 +48,25 @@ const kc = new Keycloak({
   },
 });
 
-// To start login:
+// To start login (Authorization Code + PKCE S256):
 kc.authenticate();
 
 // On callback route, handle token exchange:
 kc.checkForSession();
 ```
+
+Browser login now generates a random PKCE verifier and `state` in tab session storage.
+On return, `checkForSession()` rejects missing, unknown, reused, or expired state
+before exchanging the code. It sends the saved verifier and the exact redirect URI
+used to start login. A `session_state` parameter is no longer required on the
+callback. PKCE requires Web Crypto and a secure browser context (HTTPS or localhost).
+The existing `authenticate()` call style remains valid; it starts the redirect
+after the asynchronous PKCE hash completes. Callers may await its returned promise
+if they need to know when redirect setup finishes.
+
+Existing sign-ins started with an earlier library version lack PKCE state and must
+be restarted after upgrading. Set `pkceMethod: false` only as a temporary
+compatibility setting for servers without PKCE support.
 
 ---
 
@@ -73,6 +86,7 @@ Pass these as an object to the `Keycloak` constructor:
 | `refreshUrl`        | string   | `keycloakUrl`    | URL for refresh endpoint                                                             |
 | `kc_idp_hint`       | string   | "login.gov"      | Identity provider hint                                                               |
 | `scope`             | string   | "openid profile" | OAuth scopes                                                                         |
+| `pkceMethod`        | string or false | `"S256"` | Browser authorization uses PKCE S256 by default. Set `false` only for an older server that cannot accept PKCE. Direct-grant and refresh calls are unaffected. |
 | `refreshInterval`   | number   | (from token)     | Override refresh interval (seconds)                                                  |
 | `refreshBuffer`     | number   | 60               | Buffer (seconds) before token expiry to refresh                                      |
 | `sessionEndWarning` | number   | 60               | Warn user (seconds) before session expiry                                            |

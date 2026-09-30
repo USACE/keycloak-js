@@ -1,4 +1,31 @@
 const urlencodeFormData = (fd) => new URLSearchParams([...fd]);
+const pkceStatePrefix = "usace-keycloak:pkce:";
+const pkceMaxAgeMs = 15 * 60 * 1000;
+
+const randomBase64Url = (byteCount) => {
+  const bytes = new Uint8Array(byteCount);
+  window.crypto.getRandomValues(bytes);
+  return btoa(String.fromCharCode(...bytes))
+    .replace(/\+/g, "-")
+    .replace(/\//g, "_")
+    .replace(/=+$/, "");
+};
+
+const createPkcePair = async () => {
+  if (!window.crypto?.getRandomValues || !window.crypto?.subtle) {
+    throw new Error("PKCE requires the Web Crypto API in a secure browser context");
+  }
+  const verifier = randomBase64Url(32);
+  const digest = await window.crypto.subtle.digest(
+    "SHA-256",
+    new TextEncoder().encode(verifier)
+  );
+  const challenge = btoa(String.fromCharCode(...new Uint8Array(digest)))
+    .replace(/\+/g, "-")
+    .replace(/\//g, "_")
+    .replace(/=+$/, "");
+  return { verifier, challenge };
+};
 
 class Keycloak {
   constructor(opts) {
@@ -20,6 +47,7 @@ class Keycloak {
       refreshBuffer: 60, // 1 minute in seconds
       sessionEndWarning: 60, // 1 minute in seconds
       scope: "openid profile",
+      pkceMethod: "S256",
 
       onSessionEnding: undefined,
       onAuthenticate: undefined,
@@ -50,6 +78,10 @@ class Keycloak {
     this.sessionTimeout = undefined;
     this.sessionEndWarning = config.sessionEndWarning;
     this.scope = config.scope;
+    if (config.pkceMethod !== "S256" && config.pkceMethod !== false) {
+      throw new Error('pkceMethod must be "S256" or false');
+    }
+    this.pkceMethod = config.pkceMethod;
 
     this.onSessionEnding = config.onSessionEnding;
     this.onAuthenticate = config.onAuthenticate;
@@ -66,21 +98,81 @@ class Keycloak {
     const kc_idp_hint = overrides.kc_idp_hint || this.kc_idp_hint;
     const redirectUrl = overrides.redirectUrl || this.redirectUrl;
 
-    const url = `${
-      this.browserFlowUrl
-    }/realms/${realm}/protocol/openid-connect/auth?response_type=code&kc_idp_hint=${kc_idp_hint}&client_id=${
-      this.client
-    }&scope=openid&redirect_uri=${redirectUrl}&nocache=${new Date().getTime()}`;
-    window.location.href = url;
+    try {
+      const url = new URL(
+        `${this.browserFlowUrl}/realms/${realm}/protocol/openid-connect/auth`
+      );
+      url.searchParams.set("response_type", "code");
+      url.searchParams.set("kc_idp_hint", kc_idp_hint);
+      url.searchParams.set("client_id", this.client);
+      url.searchParams.set("scope", "openid");
+      url.searchParams.set("redirect_uri", redirectUrl);
+      url.searchParams.set("nocache", new Date().getTime());
+
+      if (!this.pkceMethod) {
+        window.location.href = url.toString();
+        return;
+      }
+
+      // Web Crypto is asynchronous. Keep the existing fire-and-forget login call;
+      // navigate only after the challenge and matching verifier are ready.
+      return createPkcePair()
+        .then(({ verifier, challenge }) => {
+          const state = randomBase64Url(32);
+          window.sessionStorage.setItem(
+            pkceStatePrefix + state,
+            JSON.stringify({ verifier, realm, redirectUrl, createdAt: Date.now() })
+          );
+          url.searchParams.set("state", state);
+          url.searchParams.set("code_challenge", challenge);
+          url.searchParams.set("code_challenge_method", "S256");
+          window.location.href = url.toString();
+        })
+        .catch((error) => this.onError(error));
+    } catch (error) {
+      this.onError(error);
+    }
   }
 
   checkForSession() {
     const urlParams = new URLSearchParams(window.location.search);
-    this.code = urlParams.get("code");
-    this.sessionState = urlParams.get("session_state");
-    if (this.code && this.sessionState) {
-      this.codeFlowAuth();
-      window.history.pushState(null, null, document.location.pathname);
+    const code = urlParams.get("code");
+    const error = urlParams.get("error");
+    if (!code && !error) return;
+
+    try {
+      let transaction;
+      if (this.pkceMethod) {
+        const state = urlParams.get("state");
+        if (!state) throw new Error("Missing authorization state");
+        const stored = window.sessionStorage.getItem(pkceStatePrefix + state);
+        if (!stored) throw new Error("Unknown or already used authorization state");
+        window.sessionStorage.removeItem(pkceStatePrefix + state);
+        transaction = JSON.parse(stored);
+        if (
+          !transaction.verifier || !transaction.realm || !transaction.redirectUrl ||
+          !Number.isFinite(transaction.createdAt) ||
+          Date.now() - transaction.createdAt > pkceMaxAgeMs ||
+          transaction.createdAt > Date.now()
+        ) {
+          throw new Error("Invalid or expired authorization state");
+        }
+      }
+
+      if (error) {
+        throw new Error(`Authorization failed: ${error}`);
+      }
+      this.code = code;
+      this.sessionState = urlParams.get("session_state");
+      this.codeFlowAuth(transaction);
+    } catch (authError) {
+      this.onError(authError);
+    } finally {
+      const url = new URL(window.location.href);
+      for (const name of ["code", "state", "session_state", "iss", "error", "error_description"]) {
+        url.searchParams.delete(name);
+      }
+      window.history.replaceState(null, "", url.pathname + url.search + url.hash);
     }
   }
 
@@ -188,13 +280,14 @@ class Keycloak {
     xhr.send(urlencodeFormData(data));
   }
 
-  codeFlowAuth() {
-    const url = `${this.browserFlowUrl}/realms/${this.realm}/protocol/openid-connect/token`;
+  codeFlowAuth(transaction) {
+    const url = `${this.browserFlowUrl}/realms/${transaction?.realm || this.realm}/protocol/openid-connect/token`;
     const data = new FormData();
     data.append("code", this.code);
     data.append("grant_type", "authorization_code");
     data.append("client_id", this.client);
-    data.append("redirect_uri", this.redirectUrl);
+    data.append("redirect_uri", transaction?.redirectUrl || this.redirectUrl);
+    if (transaction?.verifier) data.append("code_verifier", transaction.verifier);
     this.fetch(url, data, this.parseTokens.bind(this));
   }
 

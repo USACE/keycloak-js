@@ -9,8 +9,9 @@
   "scripts": {
     "test": "vitest",
     "test:ui": "vitest --ui",
-    "test:run": "vitest run",
+    "test:run": "vitest run && npm run test:pkce",
     "test:coverage": "vitest --coverage",
+    "test:pkce": "node --test test/*.test.mjs",
     "pub": "npm publish --access=public"
   },
   "author": "@willbreitkreutz @randal.goss",
