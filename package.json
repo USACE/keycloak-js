@@ -16,9 +16,9 @@
   "author": "@willbreitkreutz @randal.goss",
   "license": "MIT",
   "devDependencies": {
-    "@vitest/coverage-v8": "^2.1.9",
-    "@vitest/ui": "^2.1.9",
-    "happy-dom": "^15.11.7",
-    "vitest": "^2.1.9"
+    "@vitest/coverage-v8": "^5.0.3",
+    "@vitest/ui": "^5.0.3",
+    "happy-dom": "^20.14.5",
+    "vitest": "^5.0.3"
   }
 }
