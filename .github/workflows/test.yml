@@ -28,16 +28,3 @@ jobs:
       
       - name: Run tests
         run: npm run test:run
-      
-      - name: Generate coverage report
-        run: npm run test:coverage
-        if: matrix.node-version == 24
-      
-      - name: Upload coverage to Codecov
-        uses: codecov/codecov-action@v4
-        if: matrix.node-version == 24
-        continue-on-error: true
-        with:
-          files: ./coverage/lcov.info
-          flags: unittests
-          name: codecov-umbrella
