@@ -7,9 +7,18 @@
     "url": "https://github.com/USACE/keycloak-js"
   },
   "scripts": {
-    "test": "echo \"Error: no test specified\" && exit 1",
+    "test": "vitest",
+    "test:ui": "vitest --ui",
+    "test:run": "vitest run",
+    "test:coverage": "vitest --coverage",
     "pub": "npm publish --access=public"
   },
   "author": "@willbreitkreutz @randal.goss",
-  "license": "MIT"
+  "license": "MIT",
+  "devDependencies": {
+    "@vitest/coverage-v8": "^5.0.3",
+    "@vitest/ui": "^5.0.3",
+    "happy-dom": "^20.14.5",
+    "vitest": "^5.0.3"
+  }
 }

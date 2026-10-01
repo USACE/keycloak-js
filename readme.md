@@ -1,5 +1,8 @@
 # USACE Keycloak JS v2
 
+[![Test](https://github.com/USACE/keycloak-js/actions/workflows/test.yml/badge.svg)](https://github.com/USACE/keycloak-js/actions/workflows/test.yml)
+[![NPM Version](https://img.shields.io/npm/v/@usace/keycloak)](https://www.npmjs.com/package/@usace/keycloak)
+
 > Minimal, modern Keycloak authentication and token management for browser apps.
 
 **NPM Package:** [`@usace/keycloak`](https://www.npmjs.com/package/@usace/keycloak)  
