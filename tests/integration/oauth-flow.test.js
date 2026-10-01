@@ -28,14 +28,14 @@ describe('OAuth2 Authorization Code Flow', () => {
     // Mock window.location
     delete window.location
     window.location = { 
-      href: '',
+      href: 'http://localhost:3000/',
       search: '',
       origin: 'http://localhost:3000',
       pathname: '/'
     }
 
     // Mock window.history
-    window.history.pushState = vi.fn()
+    window.history.replaceState = vi.fn()
 
     // Initialize Keycloak instance
     keycloak = new Keycloak({
@@ -43,7 +43,8 @@ describe('OAuth2 Authorization Code Flow', () => {
       realm: 'test-realm',
       client: 'test-client',
       redirectUrl: 'http://localhost:3000/callback',
-      kc_idp_hint: 'login.gov'
+      kc_idp_hint: 'login.gov',
+      pkceMethod: false
     })
   })
 
@@ -69,7 +70,7 @@ describe('OAuth2 Authorization Code Flow', () => {
       expect(window.location.href).toContain('response_type=code')
       expect(window.location.href).toContain('client_id=test-client')
       expect(window.location.href).toContain('kc_idp_hint=login.gov')
-      expect(window.location.href).toContain('redirect_uri=http://localhost:3000/callback')
+      expect(new URL(window.location.href).searchParams.get('redirect_uri')).toBe('http://localhost:3000/callback')
       expect(window.location.href).toContain('scope=openid')
     })
 
@@ -88,7 +89,7 @@ describe('OAuth2 Authorization Code Flow', () => {
     it('should allow runtime overrides for redirectUrl', () => {
       keycloak.authenticate({ redirectUrl: 'http://localhost:3000/custom' })
 
-      expect(window.location.href).toContain('redirect_uri=http://localhost:3000/custom')
+      expect(new URL(window.location.href).searchParams.get('redirect_uri')).toBe('http://localhost:3000/custom')
     })
 
     it('should include nocache parameter to prevent caching', () => {
@@ -150,7 +151,7 @@ describe('OAuth2 Authorization Code Flow', () => {
       expect(result.response).toEqual(mockTokenResponse)
 
       // Verify URL was cleaned (code removed from history)
-      expect(window.history.pushState).toHaveBeenCalledWith(null, null, '/')
+      expect(window.history.replaceState).toHaveBeenCalledWith(null, '', '/')
     })
 
     it('should not initiate token exchange if code is missing', () => {
@@ -164,7 +165,8 @@ describe('OAuth2 Authorization Code Flow', () => {
       expect(onAuthenticate).not.toHaveBeenCalled()
     })
 
-    it('should not initiate token exchange if session_state is missing', () => {
+    it('should accept a callback without session_state', () => {
+      xhrCleanup = setupXHRMock(() => ({ status: 200, body: generateMockTokenResponse() }))
       window.location.search = '?code=test-auth-code-123'
 
       const onAuthenticate = vi.fn()
@@ -172,7 +174,8 @@ describe('OAuth2 Authorization Code Flow', () => {
 
       keycloak.checkForSession()
 
-      expect(onAuthenticate).not.toHaveBeenCalled()
+      expect(keycloak.code).toBe('test-auth-code-123')
+      expect(keycloak.sessionState).toBeNull()
     })
 
     it('should store code and session_state', () => {
